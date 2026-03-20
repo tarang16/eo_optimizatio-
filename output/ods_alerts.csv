@@ -1,0 +1,3 @@
+effect_name,effect_description,cause_name,cause_description,message,monitoring_tag,actual_value,optimum_value,run_timestamp
+total_fuel_consumption,Fuel Bill,Boiler_Load_HIGH,Overall Boiler Load High  - (MT/HR),Boiler load to be reduced with optimization of steam dumping/ steam venting. Refer optimization results for load biasing to individual boilers,Total_BLR_HPS_Generation,0.0976,0.0,2026-03-17 05:12:00.480567
+total_fuel_consumption,Fuel Bill,Deaerators_A_B,"Overall high LP steam consumption, de-aerators (7101A,B)- (MT/HR)","Optmized HP steam demand will reduce the BFW consumption, eventually this will reduce LP steam demand in de-aerator. Refer optimization results for details",Deaerator_LPS,0.034,0.0,2026-03-17 05:12:00.480567

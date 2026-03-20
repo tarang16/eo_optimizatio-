@@ -1,0 +1,11 @@
+{
+  "feature_file": "C:\\Users\\tnigam\\Desktop\\optimizer_eo\\sample_data\\EO_UN_FF_Rev_14.xlsx",
+  "model_id": 1,
+  "run_timestamp": "2026-03-17T05:12:00.480567",
+  "pipeline_duration_s": 17.34,
+  "n_tags": 3761,
+  "n_inferred": 2272,
+  "n_variables": 141,
+  "n_constraints": 30,
+  "optimizer_converged": false
+}

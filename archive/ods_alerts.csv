@@ -1,0 +1,7 @@
+effect_name,cause_name,cause_desc,operator_msg,monitoring_tag,actual_value,optimum_value
+total_fuel_consumption,Boiler_5_Load_STATUS,Overall Boiler Load High,"Shutdown Boiler E, to achieve HP steam production as per optimized HP steam demand",BLR_5_Status,1.0,0.0
+total_fuel_consumption,Boiler_Load_HIGH,Overall Boiler Load High  - (MT/HR),Boiler load to be reduced with optimization of steam dumping/ steam venting. Refer optimization results for load biasing to individual boilers,Total_BLR_HPS_Generation,399.6367,49.1478
+Power_Bill,Air Compressor Motor C_overrun,High power consumption (MW),Switch off Air Compressor motor C to reduce venting of air.,Air_Compressor_Motor_C_Power,1.197,2.5665
+total_fuel_consumption,FDD_E_Overrun,Overall Boiler Load High,Switch off FD Fan-E as Boiler-E can be shut down,BLR_5_Status,1.0,0.0
+Power_Bill,Air_Compressor_Motor_B_IGV_decrease,High power consumption (MW),"Decrease the IGV opening of Air Compressor  B to decrease air supply, which will help reduce air venting",Air_Compressor_Motor_B_Power,1.2495,0.7628
+total_fuel_consumption,High_Letdown_PV_7026,"High Letdown, PV-7026 (MT/HR)","Margin available in C3R RPM, Reduce the letdown opening PV-7026, this will reduce the shaft loss and reduce the C3R suction pressure",HP_to_LP_Let_Down_Valve_PC7026_LP_Steam_flow_out_ETH,18.0838,

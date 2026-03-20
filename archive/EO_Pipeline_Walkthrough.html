@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EO Pipeline — Architecture & Code Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #131920;
+    --border: #1e2d3d;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #a8ff3e;
+    --accent4: #c084fc;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* --- ANIMATED GRID BACKGROUND --- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* --- HERO --- */
+  .hero {
+    position: relative;
+    padding: 80px 40px 60px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    border: 1px solid rgba(0,212,255,0.3);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 64px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 600px;
+    margin: 0 auto 40px;
+  }
+
+  /* --- STATS BAR --- */
+  .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .stat-item {
+    flex: 1;
+    min-width: 120px;
+    padding: 16px 20px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+    background: var(--surface);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    display: block;
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* --- NAV --- */
+  .sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(8, 12, 16, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .nav-item {
+    padding: 14px 18px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .nav-item:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-item.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- LAYOUT --- */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- PHILOSOPHY SECTION --- */
+  .philosophy {
+    padding: 60px 0 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    opacity: 0.6;
+  }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .philosophy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .phil-card {
+    background: var(--surface);
+    padding: 28px;
+  }
+
+  .phil-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .phil-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .phil-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .phil-card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .phil-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .phil-card ul li {
+    font-size: 13px;
+    color: var(--text);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .phil-card ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: var(--mono);
+  }
+
+  /* --- PIPELINE FLOW DIAGRAM --- */
+  .pipeline-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 40px 0;
+  }
+
+  .flow-stage {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .flow-stage:hover { border-color: var(--accent); }
+  .flow-stage.expanded { border-color: var(--accent); }
+
+  .flow-stage-header {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    align-items: center;
+    background: var(--surface);
+    padding: 0;
+  }
+
+  .stage-num-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 64px;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    border-right: 1px solid var(--border);
+  }
+
+  .stage-info {
+    padding: 0 20px;
+  }
+
+  .stage-name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .stage-sub {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+
+  .stage-metrics {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 0 20px;
+    gap: 4px;
+  }
+
+  .stage-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .stage-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .stage-expand-icon {
+    transition: transform 0.3s;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 0 16px 0 0;
+  }
+
+  .flow-stage.expanded .stage-expand-icon { transform: rotate(90deg); }
+
+  .stage-detail {
+    display: none;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+  }
+
+  .flow-stage.expanded .stage-detail { display: block; }
+
+  .stage-detail-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .detail-section {
+    padding: 24px 28px;
+    border-right: 1px solid var(--border);
+  }
+
+  .detail-section:last-child { border-right: none; }
+
+  .detail-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+
+  .detail-text {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  /* --- CODE BLOCKS --- */
+  pre, code {
+    font-family: var(--mono);
+  }
+
+  .code-block {
+    background: #050810;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-filename {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--muted);
+  }
+
+  .code-lang {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--accent4);
+    background: rgba(192,132,252,0.1);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  pre code {
+    display: block;
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+    color: #c9d1d9;
+  }
+
+  .kw  { color: #ff7b72; }
+  .fn  { color: #d2a8ff; }
+  .st  { color: #a5d6ff; }
+  .cm  { color: #8b949e; font-style: italic; }
+  .num { color: #79c0ff; }
+  .var { color: #ffa657; }
+  .op  { color: #ff7b72; }
+
+  /* --- NODE LIST --- */
+  .node-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .node-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .node-arrow { color: var(--accent); font-size: 10px; }
+  .node-name { color: var(--text); }
+  .node-desc { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+  /* --- DATA FLOW DIAGRAM --- */
+  .data-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+  }
+
+  .df-box {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .df-arrow {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* --- OUTPUT SECTION --- */
+  .output-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+
+  .output-card {
+    background: var(--surface);
+    padding: 24px;
+  }
+
+  .output-card-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .output-card h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .output-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* --- ODS ALERT --- */
+  .ods-alert {
+    background: var(--surface2);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-left: 3px solid var(--accent2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+
+  .ods-effect {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent2);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .ods-msg { color: var(--text); line-height: 1.5; }
+  .ods-tag { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* --- SEU TABLE --- */
+  .seu-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: var(--mono);
+    margin: 12px 0;
+  }
+
+  .seu-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface);
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 10px;
+  }
+
+  .seu-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+    color: var(--text);
+  }
+
+  .seu-table tr:hover td { background: var(--surface); }
+
+  .gain-pos { color: var(--accent3); }
+  .gain-neg { color: var(--accent2); }
+
+  /* --- CIRCULAR REF --- */
+  .circular-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(192,132,252,0.1);
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent4);
+    margin: 4px;
+  }
+
+  .circ-icon { font-size: 14px; }
+
+  /* --- CALLOUT --- */
+  .callout {
+    display: flex;
+    gap: 14px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* --- CONNECTOR LINES --- */
+  .flow-connector {
+    display: flex;
+    justify-content: center;
+    padding: 2px 0;
+    color: var(--border);
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  /* --- ANIMATIONS --- */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .animate-in {
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    background: var(--accent3);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    margin-right: 6px;
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 768px) {
+    .hero, .main { padding-left: 20px; padding-right: 20px; }
+    .philosophy-grid, .stage-detail-inner, .output-grid { grid-template-columns: 1fr; }
+    .flow-stage-header { grid-template-columns: 48px 1fr auto; }
+    .stats-bar { gap: 1px; background: var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Energy Optimization · Pipeline Documentation</div>
+  <h1>EO Pipeline<br><span>Architecture & Code Walkthrough</span></h1>
+  <p class="hero-sub">A complete breakdown of what happened at each stage, why it was designed this way, and what came out the other side.</p>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-num">3,761</span>
+      <span class="stat-label">PI Tags</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">2,272</span>
+      <span class="stat-label">Inferred Tags</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">141</span>
+      <span class="stat-label">Variables</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">57</span>
+      <span class="stat-label">SEU Units</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">22.6s</span>
+      <span class="stat-label">Run Time</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">2</span>
+      <span class="stat-label">ODS Alerts</span>
+    </div>
+  </div>
+</div>
+
+<!-- STICKY NAV -->
+<nav class="sticky-nav">
+  <a href="#philosophy" class="nav-item">Philosophy</a>
+  <a href="#stage1" class="nav-item">Stage 1: Ingestion</a>
+  <a href="#stage2" class="nav-item">Stage 2: CCP Quality</a>
+  <a href="#stage3" class="nav-item">Stage 3: Inferred Tags</a>
+  <a href="#stage4" class="nav-item">Stage 4: Sub-Models</a>
+  <a href="#stage5" class="nav-item">Stage 5: Opt Prep</a>
+  <a href="#stage6" class="nav-item">Stage 6: Optimizer</a>
+  <a href="#stage7" class="nav-item">Stage 7: Post-Opt</a>
+  <a href="#stage8" class="nav-item">Stage 8: ODS/SEU</a>
+  <a href="#output" class="nav-item">Final Output</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- PHILOSOPHY -->
+  <section id="philosophy" class="philosophy">
+    <div class="section-header">
+      <span class="section-num">00</span>
+      <h2 class="section-title">Core Philosophy</h2>
+    </div>
+
+    <div class="philosophy-grid">
+      <div class="phil-card">
+        <div class="phil-card-header">
+          <div class="phil-dot" style="background: var(--accent)"></div>
+          <span class="phil-card-title" style="color: var(--accent)">Configuration Is Law</span>
+        </div>
+        <p>Every tag formula, bound, constraint, and objective lives in the feature file (Excel / database). The Python code is a dumb executor — it reads config and runs it. <strong>Nothing is hardcoded.</strong></p>
+        <ul>
+          <li>Change a boiler constraint? Update the DB row. No redeploy.</li>
+          <li>Add a new plant? Load a new case_id. Same code runs it.</li>
+          <li>All 41 tables loaded at startup via <code>load_config_from_excel()</code></li>
+        </ul>
+      </div>
+      <div class="phil-card">
+        <div class="phil-card-header">
+          <div class="phil-dot" style="background: var(--accent3)"></div>
+          <span class="phil-card-title" style="color: var(--accent3)">Nodes Are Atoms</span>
+        </div>
+        <p>Every function does <em>exactly one thing</em>. 10–30 lines, no side effects, pure inputs → outputs. You can unit-test each node in isolation and swap implementations without touching anything else.</p>
+        <ul>
+          <li>create_pi_connection ≠ fetch_pi_data ≠ standardize_columns</li>
+          <li>build_variables ≠ build_constraints ≠ build_objective</li>
+          <li>DAG enforces execution order — no manual sequencing</li>
+        </ul>
+      </div>
+      <div class="phil-card">
+        <div class="phil-card-header">
+          <div class="phil-dot" style="background: var(--accent2)"></div>
+          <span class="phil-card-title" style="color: var(--accent2)">DAG-Enforced Order</span>
+        </div>
+        <p>Inferred tags depend on each other. We never manually specify a calculation order. Instead, we parse every formula for <code>[tag]</code> references, build a NetworkX directed graph, and topological sort it.</p>
+        <ul>
+          <li>3,050 nodes, 6,318 edges built automatically from formulas</li>
+          <li>5 circular dependency groups detected and flagged for fsolve</li>
+          <li>nx.is_directed_acyclic_graph() validates before execution</li>
+        </ul>
+      </div>
+      <div class="phil-card">
+        <div class="phil-card-header">
+          <div class="phil-dot" style="background: var(--accent4)"></div>
+          <span class="phil-card-title" style="color: var(--accent4)">Pipelines Are Reusable</span>
+        </div>
+        <p>The same 8-stage pipeline runs for every plant: ETH, EOEG1, EOEG2, EOEG3, LAO. The <code>model_id</code> parameter filters all config tables to the right plant. One codebase, many plants.</p>
+        <ul>
+          <li>load_config_from_db(case_id) is the only thing that changes per run</li>
+          <li>Sub-models, bounds, and constraints all resolve from filtered tables</li>
+          <li>Simulation mode lets you run without a live PI historian</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <div><strong>The Big Idea:</strong> The feature file (EO_UN_FF_Rev_14.xlsx) <em>is</em> the program. The Python code is just the runtime that interprets it. A process engineer can change optimization behaviour — add a furnace, tighten a bound, rewrite a formula — without touching a single line of Python.</div>
+    </div>
+  </section>
+
+  <!-- STAGE 1 -->
+  <section id="stage1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Data Ingestion</h2>
+    </div>
+
+    <div class="flow-stage" onclick="toggle(this)">
+      <div class="flow-stage-header">
+        <div class="stage-num-box" style="color: var(--accent); background: rgba(0,212,255,0.05)">01</div>
+        <div class="stage-info">
+          <div class="stage-name">Data Ingestion</div>
+          <div class="stage-sub">rm_block: data_ingestion_get_pi_data</div>
+        </div>
+        <div class="stage-metrics">
+          <span class="stage-badge" style="background: rgba(0,212,255,0.1); color: var(--accent)">3,761 tags loaded</span>
+          <span class="stage-time">⏱ 0.23s</span>
+        </div>
+        <span class="stage-expand-icon">▶</span>
+      </div>
+      <div class="stage-detail">
+        <div class="stage-detail-inner">
+          <div class="detail-section">
+            <div class="detail-title">What happened</div>
+            <p class="detail-text">The pipeline started by connecting to the PI historian (or generating synthetic data in simulation mode). It then pulled values for all 3,761 tags defined in the <code>tag</code> table, standardised column names from PI paths to tag_names, and validated coverage.</p>
+
+            <div class="node-list">
+              <div class="node-item">
+                <span class="node-arrow">▶</span>
+                <span class="node-name">create_pi_connection</span>
+                <span class="node-desc">SIMULATION MODE</span>
+              </div>
+              <div class="node-item">
+                <span class="node-arrow">▶</span>
+                <span class="node-name">fetch_pi_data_simulated</span>
+                <span class="node-desc">3,761 synthetic values</span>
+              </div>
+              <div class="node-item">
+                <span class="node-arrow">▶</span>
+                <span class="node-name">standardize_columns</span>
+                <span class="node-desc">pi_name → tag_name</span>
+              </div>
+              <div class="node-item">
+                <span class="node-arrow">▶</span>
+                <span class="node-name">validate_data_coverage</span>
+                <span class="node-desc">100% PI coverage ✓</span>
+              </div>
+            </div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-title">Key code</div>
+            <div class="code-block">
+              <div class="code-header">
+                <span class="code-filename">pipelines/ingestion/nodes.py</span>
+                <span class="code-lang">python</span>
+              </div>
+              <pre><code><span class="kw">def</span> <span class="fn">fetch_pi_data_simulated</span>(
+    pi_connection, tag_config, pipeline_macros,
+    reference_timestamp<span class="op">=</span><span class="num">None</span>
+) <span class="op">-></span> pd.DataFrame:
+
+    rng <span class="op">=</span> np.random.<span class="fn">default_rng</span>(seed<span class="op">=</span><span class="num">42</span>)
+    row <span class="op">=</span> {<span class="st">"timestamp"</span>: reference_timestamp}
+
+    <span class="kw">for</span> _, tag_row <span class="kw">in</span> tag_config.<span class="fn">iterrows</span>():
+        name_lower <span class="op">=</span> tag_name.lower()
+
+        <span class="kw">if</span> <span class="st">"temperature"</span> <span class="kw">in</span> name_lower:
+            val <span class="op">=</span> rng.<span class="fn">uniform</span>(<span class="num">100</span>, <span class="num">500</span>)
+        <span class="kw">elif</span> <span class="st">"status"</span> <span class="kw">in</span> name_lower:
+            val <span class="op">=</span> rng.<span class="fn">choice</span>([<span class="num">0</span>, <span class="num">1</span>])
+        <span class="cm"># ... more heuristics</span>
+
+        row[tag_name] <span class="op">=</span> <span class="fn">round</span>(val, <span class="num">4</span>)
+
+    <span class="kw">return</span> pd.<span class="fn">DataFrame</span>([row])</code></pre>
+            </div>
+            <div class="callout" style="margin-top: 10px;">
+              <span class="callout-icon">ℹ️</span>
+              <div style="font-size: 12px;">In production, replace <code>fetch_pi_data_simulated</code> with <code>fetch_pi_data</code> which calls the OSIsoft PI Web API. The node signature stays identical — only the implementation changes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 2 -->
+    <div id="stage2" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2 class="section-title">CCP Quality Check</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: var(--accent3); background: rgba(168,255,62,0.05)">02</div>
+          <div class="stage-info">
+            <div class="stage-name">CCP Quality Check</div>
+            <div class="stage-sub">rm_block: data_enrichment_pi_tag_imputation</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(168,255,62,0.1); color: var(--accent3)">20 QC events</span>
+            <span class="stage-time">⏱ 0.05s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">For every tag in the <code>case_configuration_portal</code> table (107 tags), three quality checks ran — NaN detection, stuck signal detection, and out-of-bound enforcement. 20 tags were flagged and replaced with their <code>default_value</code>.</p>
+              <p class="detail-text">This is critical: <strong>the optimizer must never receive bad data.</strong> A stuck pressure sensor or a NaN temperature would corrupt every formula downstream.</p>
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">check_tag_nan</span><span class="node-desc">nan_switch=14 → replace</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">check_tag_stuck</span><span class="node-desc">stuck_switch=7 → log</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">check_tag_out_of_bound</span><span class="node-desc">lolo/hihi bounds enforced</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">apply_defaults</span><span class="node-desc">default_switch=16 fallback</span></div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Switch code logic</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">Switch codes from case_configuration_portal</span>
+                  <span class="code-lang">table</span>
+                </div>
+                <pre><code><span class="cm"># Example row from case_configuration_portal:</span>
+<span class="cm"># tag_name        : Spec_En_Cons_BLR_1</span>
+<span class="cm"># default_switch  : 16  → always apply default</span>
+<span class="cm"># default_value   : 2.95</span>
+<span class="cm"># tag_nan_switch  : 14  → replace with default + warn</span>
+<span class="cm"># tag_stuck_switch: 7   → skip, log only</span>
+<span class="cm"># tag_out_of_bound: 4   → clamp to bounds</span>
+<span class="cm"># lolo            : 0</span>
+<span class="cm"># hihi            : 3.5</span>
+
+SWITCH_USE_DEFAULT  <span class="op">=</span> {<span class="num">14</span>, <span class="num">16</span>}  <span class="cm"># replace</span>
+SWITCH_SKIP         <span class="op">=</span> {<span class="num">7</span>}      <span class="cm"># log only</span>
+SWITCH_BOUND_CLAMP  <span class="op">=</span> {<span class="num">4</span>}      <span class="cm"># clamp to lolo/hihi</span></code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 3 -->
+    <div id="stage3" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2 class="section-title">Inferred Tag Engine</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: var(--accent4); background: rgba(192,132,252,0.05)">03</div>
+          <div class="stage-info">
+            <div class="stage-name">Inferred Tag Engine (DAG)</div>
+            <div class="stage-sub">rm_block: data_enrichment_inferred_calculation</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(192,132,252,0.1); color: var(--accent4)">2,272 tags computed</span>
+            <span class="stage-time">⏱ 10.9s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">This is the most complex stage. 2,272 inferred tags (from the <code>inferred_details</code> table) have formula expressions that reference other tags. They must be evaluated in the right order — if tag B's formula depends on tag A, A must be computed first.</p>
+              <p class="detail-text"><strong>We never manually specify an order.</strong> Instead:</p>
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">1</span><span class="node-name">Parse [tag] refs</span><span class="node-desc">regex on every formula</span></div>
+                <div class="node-item"><span class="node-arrow">2</span><span class="node-name">Build NetworkX DiGraph</span><span class="node-desc">3,050 nodes · 6,318 edges</span></div>
+                <div class="node-item"><span class="node-arrow">3</span><span class="node-name">Detect circular SCCs</span><span class="node-desc">5 groups found</span></div>
+                <div class="node-item"><span class="node-arrow">4</span><span class="node-name">Topological sort</span><span class="node-desc">safe linear order</span></div>
+                <div class="node-item"><span class="node-arrow">5</span><span class="node-name">df.eval() each formula</span><span class="node-desc">row-by-row substitution</span></div>
+                <div class="node-item"><span class="node-arrow">6</span><span class="node-name">fsolve circular blocks</span><span class="node-desc">fixed-point iteration</span></div>
+              </div>
+
+              <p class="detail-text" style="margin-top:12px;"><strong>Circular groups detected (BLR boilers):</strong></p>
+              <div>
+                <span class="circular-group"><span class="circ-icon">⟳</span>BLR_1_HPS_Gen ↔ Spec_En_Cons_BLR_1</span>
+                <span class="circular-group"><span class="circ-icon">⟳</span>BLR_2_HPS_Gen ↔ Spec_En_Cons_BLR_2</span>
+                <span class="circular-group"><span class="circ-icon">⟳</span>BLR_3_HPS_Gen ↔ Spec_En_Cons_BLR_3</span>
+                <span class="circular-group"><span class="circ-icon">⟳</span>BLR_4_HPS_Gen ↔ Spec_En_Cons_BLR_4</span>
+                <span class="circular-group"><span class="circ-icon">⟳</span>BLR_5_HPS_Gen ↔ Spec_En_Cons_BLR_5</span>
+              </div>
+              <p class="detail-text" style="margin-top:10px; font-size:12px; color: var(--muted);">Each boiler's HPS generation depends on specific energy consumption, which itself depends on HPS generation — a classic simultaneous equation. scipy.optimize.fsolve treats them as unknowns x and finds x where f(x) = x.</p>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Key code</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">utils/formula_engine.py</span>
+                  <span class="code-lang">python</span>
+                </div>
+                <pre><code><span class="cm"># 1. Extract [tag] refs from formula strings</span>
+TAG_REF_PATTERN <span class="op">=</span> re.<span class="fn">compile</span>(<span class="st">r"\[([^\[\]]+)\]"</span>)
+
+<span class="kw">def</span> <span class="fn">build_dependency_dag</span>(formulas, known_inputs):
+    dag <span class="op">=</span> nx.<span class="fn">DiGraph</span>()
+    <span class="kw">for</span> tag, formula <span class="kw">in</span> formulas.<span class="fn">items</span>():
+        refs <span class="op">=</span> <span class="fn">extract_tag_refs</span>(formula)
+        <span class="kw">for</span> ref <span class="kw">in</span> refs:
+            dag.<span class="fn">add_edge</span>(ref, tag) <span class="cm"># ref → tag</span>
+    <span class="kw">return</span> dag
+
+<span class="cm"># 2. Topological sort — safe evaluation order</span>
+<span class="kw">def</span> <span class="fn">topological_sort_tags</span>(dag):
+    sccs <span class="op">=</span> nx.<span class="fn">strongly_connected_components</span>(dag)
+    circular <span class="op">=</span> [s <span class="kw">for</span> s <span class="kw">in</span> sccs <span class="kw">if</span> <span class="fn">len</span>(s) <span class="op">></span> <span class="num">1</span>]
+    <span class="cm"># remove circular nodes, topo-sort the rest</span>
+    clean_dag <span class="op">=</span> dag.<span class="fn">copy</span>()
+    clean_dag.<span class="fn">remove_nodes_from</span>(circular_tags)
+    <span class="kw">return</span> nx.<span class="fn">topological_sort</span>(clean_dag), circular
+
+<span class="cm"># 3. Solve circular blocks with scipy fsolve</span>
+<span class="kw">def</span> <span class="fn">solve_circular_block</span>(df, circular_tags, formulas):
+    <span class="kw">def</span> <span class="fn">residuals</span>(x):
+        local_ctx <span class="op">=</span> {<span class="op">**</span>context, <span class="op">**</span><span class="fn">dict</span>(<span class="fn">zip</span>(tag_list, x))}
+        <span class="kw">return</span> [<span class="fn">eval_formula</span>(formulas[t], local_ctx) <span class="op">-</span> x[i]
+                <span class="kw">for</span> i, t <span class="kw">in</span> <span class="fn">enumerate</span>(tag_list)]
+    solution <span class="op">=</span> <span class="fn">fsolve</span>(residuals, initial_guess)
+    <span class="kw">return</span> solution</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 4 -->
+    <div id="stage4" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2 class="section-title">Sub-Model Execution</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: #fb923c; background: rgba(251,146,60,0.05)">04</div>
+          <div class="stage-info">
+            <div class="stage-name">Sub-Model Execution</div>
+            <div class="stage-sub">rm_block: pre_optimizer_iterative_inferred</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(251,146,60,0.1); color: #fb923c">125 models ran</span>
+            <span class="stage-time">⏱ 0.41s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">The <code>sub_model</code> table defines 125 intermediate calculations that must happen <em>after</em> inferred tag computation but <em>before</em> the optimizer. They run in strict <code>order</code> column sequence.</p>
+              <p class="detail-text">Examples from the feature file:</p>
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">1</span><span class="node-name">Whatif_running = 1</span><span class="node-desc">equation</span></div>
+                <div class="node-item"><span class="node-arrow">2</span><span class="node-name">EG1_EO_Reactor_Selectivity</span><span class="node-desc">= [perc]/100</span></div>
+                <div class="node-item"><span class="node-arrow">3</span><span class="node-name">EG2_EO_Reactor_Selectivity</span><span class="node-desc">= [perc]/100</span></div>
+                <div class="node-item"><span class="node-arrow">⚠</span><span class="node-name">EOEG_2_MPS_Demand_raw</span><span class="node-desc">data model — needs ML wiring</span></div>
+                <div class="node-item"><span class="node-arrow">⚠</span><span class="node-name">EOEG_3_MPS_Demand_raw</span><span class="node-desc">data model — needs ML wiring</span></div>
+              </div>
+              <div class="callout" style="margin-top: 12px;">
+                <span class="callout-icon">⚠️</span>
+                <div style="font-size: 12px;"><strong>Note:</strong> 2 sub-models have type <code>data model</code> — these are ML regression models. They were logged as "unknown type" in this run. In production, wire a trained LightGBM model into the <code>model_registry</code> dict passed to <code>run_sub_model_pipeline()</code>.</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Key code</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">pipelines/sub_model/nodes.py</span>
+                  <span class="code-lang">python</span>
+                </div>
+                <pre><code><span class="kw">def</span> <span class="fn">run_sub_model_pipeline</span>(df, sub_model,
+                              model_registry<span class="op">=</span><span class="num">None</span>):
+    sorted_models <span class="op">=</span> <span class="fn">sort_sub_models</span>(sub_model)
+
+    <span class="kw">for</span> _, row <span class="kw">in</span> sorted_models.<span class="fn">iterrows</span>():
+        model_type <span class="op">=</span> row[<span class="st">"sub_model_type"</span>]
+
+        <span class="kw">if</span> model_type <span class="op">==</span> <span class="st">"equation"</span>:
+            df <span class="op">=</span> <span class="fn">execute_equation_model</span>(df, row)
+
+        <span class="kw">elif</span> model_type <span class="kw">in</span> (<span class="st">"regression"</span>, <span class="st">"lgbm"</span>):
+            df <span class="op">=</span> <span class="fn">execute_ml_model</span>(df, row,
+                                    model_registry)
+        <span class="kw">elif</span> model_type <span class="op">==</span> <span class="st">"iterative"</span>:
+            <span class="cm"># handled by inferred engine</span>
+            <span class="kw">pass</span>
+
+    <span class="kw">return</span> df
+
+<span class="cm"># Each equation model is just:</span>
+<span class="kw">def</span> <span class="fn">execute_equation_model</span>(df, sub_model_row):
+    tag   <span class="op">=</span> sub_model_row[<span class="st">"sub_model_name"</span>]
+    expr  <span class="op">=</span> sub_model_row[<span class="st">"sub_model_expression"</span>]
+    df[tag] <span class="op">=</span> [<span class="fn">eval_formula</span>(expr, row)
+               <span class="kw">for</span> _, row <span class="kw">in</span> df.<span class="fn">iterrows</span>()]
+    <span class="kw">return</span> df</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 5 -->
+    <div id="stage5" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2 class="section-title">Optimizer Problem Assembly</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: #34d399; background: rgba(52,211,153,0.05)">05</div>
+          <div class="stage-info">
+            <div class="stage-name">Constraint & Variable Prep</div>
+            <div class="stage-sub">rm_block: optimizer_model_preprocessing</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(52,211,153,0.1); color: #34d399">141 vars · 30 constraints</span>
+            <span class="stage-time">⏱ 0.04s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">Three tables from the feature file are read and assembled into a single optimization problem dict. The optimizer doesn't know about PI tags — it just sees a numerical problem with bounds, constraints, and an objective.</p>
+
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">build_variables</span><span class="node-desc">141 vars · bounds evaluated</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">build_constraints</span><span class="node-desc">30 constraints parsed</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">build_objective</span><span class="node-desc">minimize Objective_2</span></div>
+                <div class="node-item"><span class="node-arrow">▶</span><span class="node-name">assemble_opt_problem</span><span class="node-desc">unified problem dict</span></div>
+              </div>
+
+              <p class="detail-text" style="margin-top: 12px;">Variable bounds are evaluated dynamically from switch-code logic. For example, BLR_1_Status uses:</p>
+              <div class="code-block" style="margin-top: 6px;">
+                <pre><code style="font-size:11px;"><span class="cm"># lower_bound_switch=3 (use value=0)</span>
+<span class="cm"># upper_bound_switch=5 (evaluate expression):</span>
+upper_bound <span class="op">=</span> <span class="fn">eval</span>(
+  <span class="st">"if([Whatif_running]==0, ..."</span>
+  <span class="st">"if(([BLR_opt_running]<[Total_Boilers])..."</span>
+  <span class="st">"0, [BLR_1_Status]), 1)"</span>
+)
+<span class="cm"># initial_value_switch=6 → use current tag value</span></code></pre>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Assembled problem structure</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">opt_problem dict (passed to Stage 6)</span>
+                  <span class="code-lang">structure</span>
+                </div>
+                <pre><code>{
+  <span class="st">"variables"</span>: {
+    <span class="st">"BLR_1_Status"</span>: {
+      <span class="st">"lower_bound"</span>: <span class="num">0.0</span>,
+      <span class="st">"upper_bound"</span>: <span class="num">1.0</span>,
+      <span class="st">"initial_value"</span>: <span class="num">1.0</span>,
+      <span class="st">"is_integer"</span>: <span class="kw">True</span>
+    },
+    <span class="st">"BLR_1_HPS_Gen"</span>: {
+      <span class="st">"lower_bound"</span>: <span class="num">0.0</span>,
+      <span class="st">"upper_bound"</span>: <span class="num">150.0</span>,
+      <span class="st">"initial_value"</span>: <span class="num">87.3</span>,
+      <span class="st">"is_integer"</span>: <span class="kw">False</span>
+    },
+    <span class="cm"># ... 139 more variables</span>
+  },
+  <span class="st">"constraints"</span>: [
+    {<span class="st">"type"</span>: <span class="st">"eq"</span>,
+     <span class="st">"expression"</span>: <span class="st">"HP_to_MP_Letdown_MPS_Flow_Out...</span>
+                      <span class="st">==HPS_Flow_In*Enthalpy+BFW*109"</span>,
+     <span class="st">"system"</span>: <span class="st">"HP_to_MP letdown"</span>},
+    <span class="cm"># ... 29 more</span>
+  ],
+  <span class="st">"objective"</span>: {
+    <span class="st">"tag_name"</span>: <span class="st">"Objective_2"</span>,
+    <span class="st">"direction"</span>: <span class="st">"minimize"</span>
+  }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 6 -->
+    <div id="stage6" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">06</span>
+        <h2 class="section-title">Optimizer</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: #f472b6; background: rgba(244,114,182,0.05)">06</div>
+          <div class="stage-info">
+            <div class="stage-name">Optimizer (DE + SLSQP Fallback)</div>
+            <div class="stage-sub">rm_block: optimizer_model_main</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(244,114,182,0.1); color: #f472b6">141 vars optimized</span>
+            <span class="stage-time">⏱ 7.8s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">The optimizer searched over 141 decision variables to find the combination that minimizes <strong>Objective_2 (Total Operating Cost)</strong>.</p>
+              <p class="detail-text">Two optimizers ran in sequence:</p>
+
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">1</span><span class="node-name">Differential Evolution</span><span class="node-desc">68,973 evaluations · 30 iters</span></div>
+                <div class="node-item"><span class="node-arrow">2</span><span class="node-name">SLSQP fallback</span><span class="node-desc">gradient-based refinement</span></div>
+                <div class="node-item"><span class="node-arrow">✓</span><span class="node-name">Validate solution</span><span class="node-desc">0 bound violations</span></div>
+                <div class="node-item"><span class="node-arrow">✓</span><span class="node-name">Build optimum DataFrame</span><span class="node-desc">141 *_optimum columns added</span></div>
+              </div>
+
+              <div class="callout" style="margin-top:12px;">
+                <span class="callout-icon">🔍</span>
+                <div style="font-size:12px;"><strong>Why two optimizers?</strong> Differential Evolution is a global, gradient-free method — good for the non-convex energy surface of furnaces. But with 141 variables and only 30 iterations (demo budget), it didn't fully converge. SLSQP then refines from DE's best point using gradients. In production, increase DE iterations to 300–500 for tight convergence.</div>
+              </div>
+
+              <p class="detail-text" style="margin-top:12px; font-size:12px;">The objective function <code>Objective_2</code> is composed of fuel costs, steam utility costs, electricity costs, and DMW costs — all wired through the inferred tag dependency chain, so optimizing any setpoint automatically propagates through to the cost objective.</p>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Key code</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">pipelines/optimizer/nodes.py</span>
+                  <span class="code-lang">python</span>
+                </div>
+                <pre><code><span class="kw">def</span> <span class="fn">run_bayesian_optimizer</span>(
+    opt_problem, current_data,
+    max_iter<span class="op">=</span><span class="num">100</span>, seed<span class="op">=</span><span class="num">42</span>
+):
+    <span class="cm"># Build objective function from problem dict</span>
+    obj_func, var_names, bounds <span class="op">=</span> \
+        <span class="fn">_build_objective_func</span>(opt_problem, current_data)
+
+    <span class="cm"># Differential evolution — global, non-convex</span>
+    result <span class="op">=</span> differential_evolution(
+        obj_func,
+        bounds<span class="op">=</span>bounds,          <span class="cm"># from variables table</span>
+        maxiter<span class="op">=</span>max_iter,
+        seed<span class="op">=</span>seed,
+        mutation<span class="op">=</span>(<span class="num">0.5</span>, <span class="num">1.0</span>),
+        recombination<span class="op">=</span><span class="num">0.7</span>,
+    )
+
+    <span class="kw">return</span> result.x, result.fun, result.success
+
+<span class="cm"># SLSQP fallback with constraints:</span>
+result <span class="op">=</span> <span class="fn">minimize</span>(
+    obj_func, x0<span class="op">=</span>initial_x,
+    method<span class="op">=</span><span class="st">"SLSQP"</span>,
+    bounds<span class="op">=</span>bounds_list,
+    constraints<span class="op">=</span>scipy_constraints,
+    options<span class="op">=</span>{<span class="st">"maxiter"</span>: <span class="num">500</span>}
+)</code></pre>
+              </div>
+              <div class="callout" style="margin-top:10px;">
+                <span class="callout-icon">🔧</span>
+                <div style="font-size:12px;"><strong>Production upgrade path:</strong> Replace <code>differential_evolution</code> with BoTorch (Gaussian Process Bayesian Optimization) for uncertainty quantification. Replace <code>minimize(SLSQP)</code> with GEKKO MINLP for exact integer handling of boiler on/off status variables.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 7 -->
+    <div id="stage7" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">07</span>
+        <h2 class="section-title">Post-Optimizer Calculations</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: #38bdf8; background: rgba(56,189,248,0.05)">07</div>
+          <div class="stage-info">
+            <div class="stage-name">Post-Optimizer Calculations</div>
+            <div class="stage-sub">rm_block: post_optimizer_inferred_calculation</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(56,189,248,0.1); color: #38bdf8">141 opportunity tags</span>
+            <span class="stage-time">⏱ 0.12s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text">With optimal setpoints in hand, Stage 7 computes what the plant would look like <em>at</em> those setpoints — re-running derived equations and inferred tags on the optimum snapshot.</p>
+
+              <div class="node-list">
+                <div class="node-item"><span class="node-arrow">1</span><span class="node-name">compute_derived_pre_opt</span><span class="node-desc">91 derived tags recalculated</span></div>
+                <div class="node-item"><span class="node-arrow">2</span><span class="node-name">merge_actual_optimum</span><span class="node-desc">3,761 _actual · 141 _optimum cols</span></div>
+                <div class="node-item"><span class="node-arrow">3</span><span class="node-name">compute_opportunity_tags</span><span class="node-desc">141 delta = actual − optimum</span></div>
+              </div>
+
+              <p class="detail-text" style="margin-top: 12px;">The final DataFrame is <strong>4,045 columns wide</strong> — the original tags plus their _actual, _optimum, and _opportunity variants. This wide format is what gets written to the output PI tags.</p>
+
+              <div class="data-flow" style="margin-top: 12px;">
+                <span class="df-box" style="background: rgba(0,212,255,0.1); color: var(--accent)">BLR_1_HPS_Gen<br><span style="font-size:10px;">actual = 87.3</span></span>
+                <span class="df-arrow">−</span>
+                <span class="df-box" style="background: rgba(168,255,62,0.1); color: var(--accent3)">BLR_1_HPS_Gen<br><span style="font-size:10px;">optimum = 72.1</span></span>
+                <span class="df-arrow">=</span>
+                <span class="df-box" style="background: rgba(192,132,252,0.1); color: var(--accent4)">BLR_1_HPS_Gen<br><span style="font-size:10px;">opportunity = 15.2 t/h</span></span>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">Key code</div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span class="code-filename">pipelines/post_optimizer/nodes.py</span>
+                  <span class="code-lang">python</span>
+                </div>
+                <pre><code><span class="kw">def</span> <span class="fn">compute_opportunity_tags</span>(df_merged):
+    <span class="cm"># Find all tags that have BOTH _actual and _optimum</span>
+    actual_tags  <span class="op">=</span> {c[:<span class="op">-</span><span class="num">7</span>] <span class="kw">for</span> c <span class="kw">in</span> df
+                    <span class="kw">if</span> c.<span class="fn">endswith</span>(<span class="st">"_actual"</span>)}
+    optimum_tags <span class="op">=</span> {c[:<span class="op">-</span><span class="num">8</span>] <span class="kw">for</span> c <span class="kw">in</span> df
+                    <span class="kw">if</span> c.<span class="fn">endswith</span>(<span class="st">"_optimum"</span>)}
+    paired <span class="op">=</span> actual_tags <span class="op">&</span> optimum_tags
+
+    <span class="kw">for</span> tag <span class="kw">in</span> paired:
+        df[f<span class="st">"{tag}_opportunity"</span>] <span class="op">=</span> (
+            df[f<span class="st">"{tag}_actual"</span>] <span class="op">-</span>
+            df[f<span class="st">"{tag}_optimum"</span>]
+        )
+    <span class="kw">return</span> df
+
+<span class="cm"># Output: 141 opportunity columns like:</span>
+<span class="cm">#   BLR_1_HPS_Gen_opportunity = +15.2</span>
+<span class="cm">#   VHP_Flow_Demand_opportunity = -3.4</span>
+<span class="cm">#   Spec_En_Cons_BLR_1_opportunity = +0.08</span></code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE 8 -->
+    <div id="stage8" style="margin-top: 32px;">
+      <div class="section-header">
+        <span class="section-num">08</span>
+        <h2 class="section-title">ODS & SEU Reporting</h2>
+      </div>
+
+      <div class="flow-stage" onclick="toggle(this)">
+        <div class="flow-stage-header">
+          <div class="stage-num-box" style="color: #fb923c; background: rgba(251,146,60,0.05)">08</div>
+          <div class="stage-info">
+            <div class="stage-name">ODS Alerts + SEU Energy Metrics</div>
+            <div class="stage-sub">rm_block: optimizer_model_inferred_calculation</div>
+          </div>
+          <div class="stage-metrics">
+            <span class="stage-badge" style="background: rgba(251,146,60,0.1); color: #fb923c">57 SEUs · 2 alerts</span>
+            <span class="stage-time">⏱ 0.12s</span>
+          </div>
+          <span class="stage-expand-icon">▶</span>
+        </div>
+        <div class="stage-detail">
+          <div class="stage-detail-inner">
+            <div class="detail-section">
+              <div class="detail-title">What happened</div>
+              <p class="detail-text"><strong>SEU Metrics:</strong> For each of the 57 Specific Energy Units (boilers, compressors, heat exchangers), actual duty, target duty, baseline duty, gain, and EnPI were computed from the <code>seu_detail</code> expressions evaluated at current context.</p>
+              <p class="detail-text"><strong>ODS Messages:</strong> The cause-effect chain was evaluated: for each effect (fuel bill, power bill, DMW bill), causes were checked. 2/115 causes were triggered this run:</p>
+
+              <div class="ods-alert">
+                <div class="ods-effect">⚡ total_fuel_consumption</div>
+                <div class="ods-msg">Boiler load to be reduced with optimization of steam dumping/venting. Refer optimization results for load biasing to individual boilers.</div>
+                <div class="ods-tag">Monitoring tag: Total_BLR_HPS_Generation → actual=0.0976, optimum=0.0</div>
+              </div>
+
+              <div class="ods-alert">
+                <div class="ods-effect">💧 total_fuel_consumption</div>
+                <div class="ods-msg">Optimized HP steam demand will reduce BFW consumption, eventually reducing LP steam demand in de-aerator. Refer optimization results for details.</div>
+                <div class="ods-tag">Monitoring tag: Deaerator_LPS → actual=0.0340, optimum=0.0</div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-title">SEU metrics (sample)</div>
+              <table class="seu-table">
+                <thead>
+                  <tr>
+                    <th>SEU</th>
+                    <th>Category</th>
+                    <th>Actual Duty</th>
+                    <th>Gain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>KM-2115</td>
+                    <td>Compressor</td>
+                    <td>0.0000</td>
+                    <td class="gain-pos">0.0000</td>
+                  </tr>
+                  <tr>
+                    <td>E-2531</td>
+                    <td>Reboiler</td>
+                    <td>4.9217</td>
+                    <td class="gain-neg">-302.31</td>
+                  </tr>
+                  <tr>
+                    <td>E-4531</td>
+                    <td>Reboiler</td>
+                    <td>1.5744</td>
+                    <td class="gain-pos">+51.99</td>
+                  </tr>
+                  <tr>
+                    <td>KM-4115</td>
+                    <td>Compressor</td>
+                    <td>0.0000</td>
+                    <td class="gain-pos">0.0000</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="callout" style="margin-top: 10px;">
+                <span class="callout-icon">ℹ️</span>
+                <div style="font-size: 12px;">Negative gain on E-2531 is expected in simulation — synthetic data doesn't represent a real operating point. With live PI data, gains reflect actual vs optimal energy consumption and translate directly to $/day savings.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- FINAL OUTPUT -->
+  <section id="output" style="padding: 60px 0 40px;">
+    <div class="section-header">
+      <span class="section-num">→</span>
+      <h2 class="section-title">Final Output</h2>
+    </div>
+
+    <div class="output-grid">
+      <div class="output-card">
+        <div class="output-card-title">model_output</div>
+        <h3 style="color: var(--accent)">4,045 columns</h3>
+        <p>Wide DataFrame: every tag with _actual, _optimum, and _opportunity variants. Written to PI historian via output_pi_mapping (235 PI tags). This is what appears on operator dashboards.</p>
+      </div>
+      <div class="output-card">
+        <div class="output-card-title">model_alert_output</div>
+        <h3 style="color: var(--accent2)">2 alerts</h3>
+        <p>ODS operator messages with effect name, cause description, recommended action, and monitoring tag values (actual vs optimum). Written to the alerts table for DCS display.</p>
+      </div>
+      <div class="output-card">
+        <div class="output-card-title">seu_metrics</div>
+        <h3 style="color: var(--accent3)">57 rows</h3>
+        <p>Per-equipment energy performance: baseline duty, actual duty, target duty, gain (savings potential), EnPI, and benefit in $ per unit. Source for energy KPI dashboards.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div>
+        <strong>What the operator sees:</strong> The optimizer ran. Two boiler-related opportunities were flagged. The operator gets a clear message: "Shut down one boiler, the system can meet HPS demand from fewer units at better efficiency." The SEU table shows exactly which equipment is running above its target specific energy consumption. All recommended setpoints are pushed back to PI as <code>*_EO_CALC_OUTPUT</code> tags.
+      </div>
+    </div>
+
+    <div style="margin-top: 32px; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;">
+      <div class="detail-title" style="margin-bottom: 16px;">Run Metadata</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: var(--mono); font-size: 12px;">
+        <div style="color: var(--muted)">feature_file</div><div>EO_UN_FF_Rev_14.xlsx</div>
+        <div style="color: var(--muted)">model_id</div><div>1</div>
+        <div style="color: var(--muted)">pipeline_duration</div><div style="color: var(--accent)">22.61s</div>
+        <div style="color: var(--muted)">n_tags</div><div>3,761</div>
+        <div style="color: var(--muted)">n_inferred</div><div>2,272</div>
+        <div style="color: var(--muted)">n_variables</div><div>141</div>
+        <div style="color: var(--muted)">n_constraints</div><div>30</div>
+        <div style="color: var(--muted)">optimizer_converged</div><div style="color: #fbbf24">False (needs more iterations)</div>
+        <div style="color: var(--muted)">seu_units</div><div>57</div>
+        <div style="color: var(--muted)">ods_alerts</div><div style="color: var(--accent2)">2</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function toggle(el) {
+    el.classList.toggle('expanded');
+  }
+
+  // Active nav on scroll
+  const sections = document.querySelectorAll('section, div[id]');
+  const navItems = document.querySelectorAll('.nav-item');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navItems.forEach(item => {
+          item.classList.toggle('active', item.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+
+  document.querySelectorAll('[id]').forEach(el => observer.observe(el));
+
+  // Auto-expand first stage
+  document.querySelector('.flow-stage').classList.add('expanded');
+</script>
+</body>
+</html>

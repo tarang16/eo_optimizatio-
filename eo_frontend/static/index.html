@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EO Platform - Energy Optimization</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1e2d45;--cyan:#00d4ff;--orange:#ff6b35;--purple:#7c3aed;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--text:#e2e8f0;--muted:#64748b;--dim:#94a3b8}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.sandbox-border{border-top:3px solid var(--orange) !important}
+
+/* Nav */
+.nav{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.nav-brand{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--text),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:8px;white-space:nowrap}
+.nav-tabs{display:flex;gap:3px;flex-wrap:wrap;flex:1}
+.nav-tab{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;transition:all .2s;white-space:nowrap}
+.nav-tab.active{background:var(--cyan)22;border-color:var(--cyan);color:var(--cyan)}
+.nav-tab:hover:not(.active){border-color:var(--dim);color:var(--dim)}
+.sandbox-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-left:auto}
+.toggle{width:36px;height:20px;background:var(--border);border-radius:10px;cursor:pointer;position:relative;transition:background .2s}
+.toggle.on{background:var(--orange)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:18px}
+
+/* Pill for stage */
+.stage-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-right:6px}
+.s1{background:#0ea5e922;color:#0ea5e9}.s2{background:#f59e0b22;color:#f59e0b}.s3{background:#7c3aed22;color:#7c3aed}
+.s4{background:#06b6d422;color:#06b6d4}.s5{background:#ef444422;color:#ef4444}.s6{background:#8b5cf622;color:#8b5cf6}
+.s7{background:#ec489922;color:#ec4899}.s8{background:#10b98122;color:#10b981}.s9{background:#f9731622;color:#f97316}
+
+/* Layout */
+.container{max-width:1100px;margin:0 auto;padding:24px 20px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.card-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.card-title{font-size:16px;font-weight:700}
+.card-subtitle{font-size:12px;color:var(--dim);margin-top:2px}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.form-input{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none}
+.form-input:focus{border-color:var(--cyan)}
+.form-select{appearance:none;width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;cursor:pointer}
+
+/* Buttons */
+.btn{padding:7px 16px;border-radius:6px;border:none;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px var(--cyan)44}
+.btn-danger{background:var(--red)22;border:1px solid var(--red)44;color:var(--red)}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.btn-run{padding:12px 28px;font-size:14px;background:linear-gradient(135deg,var(--green),#0d9b6f);color:#000;border-radius:10px;font-weight:800}
+.btn-run:hover{box-shadow:0 0 30px var(--green)66;transform:scale(1.02)}
+.btn-sm{padding:4px 10px;font-size:10px}
+.nav-arrows{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);background:var(--surface2)}
+.data-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);color:var(--dim)}
+.data-table tr:hover td{background:var(--surface2)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:border-color .2s}
+.upload-zone:hover{border-color:var(--cyan)}
+.upload-zone .icon{font-size:32px;margin-bottom:8px}
+.upload-zone p{color:var(--muted);font-size:13px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.kpi-value{font-size:24px;font-weight:800;margin-bottom:4px}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+
+/* Alert */
+.alert-item{display:flex;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:8px;align-items:flex-start}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert-text{font-size:12px;color:var(--dim);line-height:1.4}
+
+/* Tag chip */
+.tag-chip{display:inline-block;background:var(--cyan)22;border:1px solid var(--cyan)44;color:var(--cyan);padding:1px 8px;border-radius:16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+
+/* Range */
+.range-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.range-row .label{flex:1;font-size:12px;font-weight:600}
+.range-row input[type=number]{width:65px;padding:5px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;text-align:center}
+.range-row .sep{color:var(--muted);font-size:11px}
+
+.chart-container{position:relative;height:260px;margin:16px 0}
+
+/* Loading & Toast */
+.loading{display:none;position:fixed;inset:0;background:rgba(10,14,26,.85);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading.show{display:flex}
+.spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--dim)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;transform:translateY(80px);opacity:0;transition:all .3s;z-index:1001}
+.toast.show{transform:translateY(0);opacity:1}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}}
+
+/* Add row form */
+.add-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.add-row .form-input{flex:1;min-width:100px}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div class="spinner"></div><div class="loading-text">Running 8-Stage Pipeline...</div></div>
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav class="nav" id="navbar">
+  <div class="nav-brand">EO Platform</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage(0)"><span class="stage-pill s1">S1</span>Tags</button>
+    <button class="nav-tab" onclick="showPage(1)"><span class="stage-pill s2">S2</span>Quality</button>
+    <button class="nav-tab" onclick="showPage(2)"><span class="stage-pill s3">S3</span>Formulas</button>
+    <button class="nav-tab" onclick="showPage(3)"><span class="stage-pill s4">S4</span>Sub-Models</button>
+    <button class="nav-tab" onclick="showPage(4)"><span class="stage-pill s5">S5</span>Optimizer</button>
+    <button class="nav-tab" onclick="showPage(5)"><span class="stage-pill s7">S7</span>Post-Opt</button>
+    <button class="nav-tab" onclick="showPage(6)"><span class="stage-pill s8">S8</span>ODS Alerts</button>
+    <button class="nav-tab" onclick="showPage(7)"><span class="stage-pill s9">SEU</span>Equipment</button>
+    <button class="nav-tab" onclick="showPage(8)"><span class="stage-pill" style="background:var(--green)22;color:var(--green)">RUN</span>Results</button>
+  </div>
+  <div class="sandbox-toggle"><span>Sandbox</span><div class="toggle" id="sandboxToggle" onclick="toggleSandbox()"></div></div>
+</nav>
+
+<div class="container">
+
+<!-- ═══ S1: TAGS ═══ -->
+<div class="page active" id="page-0">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--cyan)22;border:1.5px solid var(--cyan)55;color:var(--cyan)">S1</div>
+      <div><div class="card-title">Stage 1: Data Ingestion - Plant & PI Tags</div><div class="card-subtitle" id="tagCount">Loading...</div></div></div>
+    <div class="two-col" style="margin-bottom:16px">
+      <div><div class="form-group"><label class="form-label">Plant Name</label><input class="form-input" value="Jubail EO Complex" readonly></div></div>
+      <div><div class="form-group"><label class="form-label">UOM Preference</label><select class="form-select"><option>SI (Metric)</option><option>Imperial</option></select></div></div>
+    </div>
+    <div class="upload-zone" onclick="document.getElementById('csvFile').click()">
+      <div class="icon">CSV</div><p>Drop your PI Tag list here (CSV/Excel)</p>
+      <p style="font-size:10px;margin-top:4px;color:var(--muted)">Columns: tag_name, pi_tag_name, description, uom</p>
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="uploadCSV(this)">
+    </div>
+    <div style="overflow-x:auto;margin-top:12px"><table class="data-table"><thead><tr><th>Tag Name</th><th>PI Name</th><th>Type</th><th>Description</th><th>UOM</th><th>Group</th></tr></thead>
+      <tbody id="tagBody"></tbody></table></div>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-primary" onclick="showPage(1)">Next: Quality Rules &rarr;</button></div>
+</div>
+
+<!-- ═══ S2: QUALITY RULES (CCP) ═══ -->
+<div class="page" id="page-1">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--yellow)22;border:1.5px solid var(--yellow)55;color:var(--yellow)">S2</div>
+      <div><div class="card-title">Stage 2: Data Quality (CCP)</div><div class="card-subtitle">NaN handling, stuck sensor detection, out-of-bounds clamping</div></div></div>
+    <div class="add-row">
+      <input class="form-input" id="qrTag" placeholder="Tag name">
+      <input class="form-input" id="qrDefault" placeholder="Default val" style="max-width:80px">
+      <input class="form-input" id="qrLolo" placeholder="LOLO" style="max-width:70px">
+      <input class="form-input" id="qrHihi" placeholder="HIHI" style="max-width:70px">
+      <button class="btn btn-primary" onclick="addQualityRule()">+ Add Rule</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Tag</th><th>NaN</th><th>Stuck</th><th>OOB</th><th>Default</th><th>LOLO</th><th>HIHI</th><th></th></tr></thead>
+      <tbody id="qrBody"></tbody></table>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(0)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(2)">Next: Formulas &rarr;</button></div>
+</div>
+
+<!-- ═══ S3: FORMULAS (PRE-OPTIMIZER / INFERRED) ═══ -->
+<div class="page" id="page-2">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--purple)22;border:1.5px solid var(--purple)55;color:var(--purple)">S3</div>
+      <div><div class="card-title">Stage 3: Inferred Tag Engine (Pre-Optimizer)</div><div class="card-subtitle">Calculated tags evaluated BEFORE the optimizer runs</div></div></div>
+    <div class="add-row">
+      <input class="form-input" id="f3Tag" placeholder="Tag name">
+      <input class="form-input" id="f3Expr" placeholder="Formula expression" style="flex:2">
+      <button class="btn btn-primary" onclick="addFormula('inferred_engine','f3')">+ Add</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Calculated Tag</th><th>Formula Expression</th><th>Stage</th><th></th></tr></thead>
+      <tbody id="f3Body"></tbody></table>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(1)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(3)">Next: Sub-Models &rarr;</button></div>
+</div>
+
+<!-- ═══ S4: SUB-MODELS ═══ -->
+<div class="page" id="page-3">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:#06b6d422;border:1.5px solid #06b6d455;color:#06b6d4">S4</div>
+      <div><div class="card-title">Stage 4: Sub-Model Execution</div><div class="card-subtitle">Equation, ML, or iterative sub-models evaluated in order</div></div></div>
+    <div class="add-row">
+      <input class="form-input" id="smName" placeholder="Model name">
+      <select class="form-select" id="smType" style="max-width:120px"><option value="equation">Equation</option><option value="ml">ML</option><option value="iterative">Iterative</option></select>
+      <input class="form-input" id="smExpr" placeholder="Expression (optional)" style="flex:2">
+      <button class="btn btn-primary" onclick="addSubModel()">+ Add</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Name</th><th>Type</th><th>Order</th><th>Expression</th><th></th></tr></thead>
+      <tbody id="smBody"></tbody></table>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(2)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(4)">Next: Optimizer &rarr;</button></div>
+</div>
+
+<!-- ═══ S5/S6: OPTIMIZER SETUP ═══ -->
+<div class="page" id="page-4">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--red)22;border:1.5px solid var(--red)55;color:var(--red)">S5</div>
+      <div><div class="card-title">Stage 5/6: Optimizer Setup</div><div class="card-subtitle">Decision variables, constraints, objective function</div></div></div>
+    <select class="form-select" style="max-width:400px;margin-bottom:16px"><option>Minimize Fuel Cost (Total_Fuel_Cost)</option><option>Maximize Throughput</option><option>Minimize Energy Consumption</option></select>
+  </div>
+  <div class="two-col">
+    <div class="card"><div class="card-title" style="margin-bottom:12px">Decision Variables</div><div id="variablesList"></div></div>
+    <div class="card"><div class="card-title" style="margin-bottom:12px">Constraints</div>
+      <div class="add-row"><input class="form-input" id="cName" placeholder="Name"><input class="form-input" id="cExpr" placeholder="Expression" style="flex:2"><button class="btn btn-primary btn-sm" onclick="addConstraint()">+</button></div>
+      <div id="constraintsList"></div>
+    </div>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(3)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(5)">Next: Post-Optimizer &rarr;</button></div>
+</div>
+
+<!-- ═══ S7: POST-OPTIMIZER DERIVED EQUATIONS ═══ -->
+<div class="page" id="page-5">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:#ec489922;border:1.5px solid #ec489955;color:#ec4899">S7</div>
+      <div><div class="card-title">Stage 7: Post-Optimizer Calculations</div><div class="card-subtitle">Derived equations evaluated AFTER the optimizer (opportunity tags, deltas)</div></div></div>
+    <div class="add-row">
+      <input class="form-input" id="f7Tag" placeholder="Tag name (e.g. Savings_BLR1)">
+      <input class="form-input" id="f7Expr" placeholder="Formula (e.g. Actual_Load - Optimal_Load)" style="flex:2">
+      <button class="btn btn-primary" onclick="addFormula('post_optimizer','f7')">+ Add</button>
+    </div>
+    <table class="data-table"><thead><tr><th>Tag</th><th>Formula Expression</th><th>Stage</th><th></th></tr></thead>
+      <tbody id="f7Body"></tbody></table>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(4)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(6)">Next: ODS Alerts &rarr;</button></div>
+</div>
+
+<!-- ═══ S8: ODS ALERTS ═══ -->
+<div class="page" id="page-6">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--green)22;border:1.5px solid var(--green)55;color:var(--green)">S8</div>
+      <div><div class="card-title">Stage 8: ODS Alerts (Cause & Effect)</div><div class="card-subtitle">Define alert logic: IF [cause expression is true] THEN [show this message]</div></div></div>
+    <div class="two-col">
+      <div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text)">Alert Causes</div>
+        <div class="add-row" style="flex-direction:column;gap:6px">
+          <input class="form-input" id="acName" placeholder="Cause name (e.g. Boiler E Excess)">
+          <input class="form-input" id="acExpr" placeholder="Expression (e.g. BLR_5_Load > 0 AND Total_Steam > 400)">
+          <input class="form-input" id="acMsg" placeholder="Alert message to operator">
+          <button class="btn btn-primary" onclick="addAlertCause()" style="align-self:flex-start">+ Add Cause</button>
+        </div>
+        <div id="causesList"></div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--text)">Alert Effects</div>
+        <div class="add-row" style="flex-direction:column;gap:6px">
+          <input class="form-input" id="aeName" placeholder="Effect name">
+          <input class="form-input" id="aeDesc" placeholder="Description">
+          <select class="form-select" id="aePriority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select>
+          <button class="btn btn-primary" onclick="addAlertEffect()" style="align-self:flex-start">+ Add Effect</button>
+        </div>
+        <div id="effectsList"></div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(5)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(7)">Next: Equipment &rarr;</button></div>
+</div>
+
+<!-- ═══ SEU: EQUIPMENT ═══ -->
+<div class="page" id="page-7">
+  <div class="card">
+    <div class="card-header"><div class="card-icon" style="background:var(--orange)22;border:1.5px solid var(--orange)55;color:var(--orange)">SEU</div>
+      <div><div class="card-title">Equipment & SEU Definitions</div><div class="card-subtitle">Specific Energy Units linked to each equipment</div></div></div>
+    <table class="data-table"><thead><tr><th>SEU Name</th><th>Display Name</th><th>Energy Source</th></tr></thead>
+      <tbody id="equipBody"></tbody></table>
+  </div>
+  <div class="nav-arrows"><button class="btn btn-ghost" onclick="showPage(6)">&larr; Back</button><button class="btn btn-primary" onclick="showPage(8)">Next: Control Room &rarr;</button></div>
+</div>
+
+<!-- ═══ RESULTS: CONTROL ROOM ═══ -->
+<div class="page" id="page-8">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div><div style="font-size:22px;font-weight:800">Control Room</div><div style="font-size:12px;color:var(--dim);margin-top:2px" id="lastRunTime">No runs yet</div></div>
+    <button class="btn btn-run" onclick="runOptimizer()">RUN OPTIMIZATION</button>
+  </div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi"><div class="kpi-value" style="color:var(--cyan)" id="kpiRuntime">--</div><div class="kpi-label">Runtime</div></div>
+    <div class="kpi"><div class="kpi-value" style="color:var(--green)" id="kpiSavings">--</div><div class="kpi-label">Savings / Hour</div></div>
+    <div class="kpi"><div class="kpi-value" style="color:var(--yellow)" id="kpiAnnual">--</div><div class="kpi-label">Annual Savings</div></div>
+    <div class="kpi"><div class="kpi-value" style="color:var(--orange)" id="kpiFuel">--</div><div class="kpi-label">Fuel Improvement</div></div>
+    <div class="kpi"><div class="kpi-value" style="color:var(--dim)" id="kpiTags">--</div><div class="kpi-label">Tags Processed</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card"><div class="card-title" style="margin-bottom:12px">Actual vs Optimal</div><div class="chart-container"><canvas id="perfChart"></canvas></div></div>
+    <div class="card"><div class="card-title" style="margin-bottom:12px">ODS Alert Recommendations</div><div id="alertsList"><div style="color:var(--muted);font-size:12px">Run optimizer to see alerts</div></div></div>
+  </div>
+  <div class="card"><div class="card-title" style="margin-bottom:12px">SEU Performance Metrics</div>
+    <table class="data-table"><thead><tr><th>Equipment</th><th>Energy</th><th>Actual Duty</th><th>Target Duty</th><th>Gain</th><th>EnPI</th></tr></thead>
+      <tbody id="seuBody"><tr><td colspan="6" style="text-align:center;color:var(--muted)">Run optimizer first</td></tr></tbody></table>
+  </div>
+</div>
+
+</div><!--/container-->
+
+<script>
+const P='plant-001',API='/api';let perfChart=null;
+
+function showPage(i){
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',j===i));
+  document.querySelectorAll('.nav-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  const loaders=[loadTags,loadQualityRules,loadFormulas3,loadSubModels,()=>{loadVariables();loadConstraints()},loadFormulas7,()=>{loadCauses();loadEffects()},loadEquipment,loadLatestRun];
+  if(loaders[i])loaders[i]();
+}
+function toggleSandbox(){document.getElementById('sandboxToggle').classList.toggle('on');document.getElementById('navbar').classList.toggle('sandbox-border')}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+// ── S1: Tags ──
+async function loadTags(){
+  const r=await(await fetch(`${API}/plants/${P}/tags`)).json();
+  document.getElementById('tagCount').textContent=r.length+' tags loaded';
+  document.getElementById('tagBody').innerHTML=r.map(t=>`<tr>
+    <td style="color:var(--text);font-weight:600">${t.tag_name}</td><td>${t.pi_tag_name||'-'}</td>
+    <td><span class="tag-chip">${t.tag_type}</span></td><td>${t.description||''}</td><td>${t.uom||''}</td><td>${t.equipment_group||''}</td></tr>`).join('');
+}
+async function uploadCSV(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);
+  const r=await(await fetch(`${API}/plants/${P}/tags/upload`,{method:'POST',body:fd})).json();showToast('Uploaded '+r.uploaded+' tags');loadTags()}
+
+// ── S2: Quality Rules ──
+async function loadQualityRules(){
+  const r=await(await fetch(`${API}/plants/${P}/quality-rules`)).json();
+  document.getElementById('qrBody').innerHTML=r.map(q=>`<tr>
+    <td style="font-weight:600;color:var(--text)">${q.tag_name}</td>
+    <td>${q.nan_switch?'ON':'OFF'}</td><td>${q.stuck_switch?'ON':'OFF'}</td><td>${q.oob_switch?'ON':'OFF'}</td>
+    <td>${q.default_value??'-'}</td><td>${q.lolo_limit??'-'}</td><td>${q.hihi_limit??'-'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="delQR('${q.id}')">x</button></td></tr>`).join('')||
+    '<tr><td colspan="8" style="text-align:center;color:var(--muted)">No quality rules yet. Add rules for NaN/Stuck/OOB handling.</td></tr>';
+}
+async function addQualityRule(){
+  const tag=document.getElementById('qrTag').value.trim();if(!tag)return;
+  await fetch(`${API}/plants/${P}/quality-rules`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    tag_name:tag,default_value:parseFloat(document.getElementById('qrDefault').value)||null,
+    lolo_limit:parseFloat(document.getElementById('qrLolo').value)||null,hihi_limit:parseFloat(document.getElementById('qrHihi').value)||null})});
+  ['qrTag','qrDefault','qrLolo','qrHihi'].forEach(id=>document.getElementById(id).value='');showToast('Rule added');loadQualityRules()}
+async function delQR(id){await fetch(`${API}/quality-rules/${id}`,{method:'DELETE'});loadQualityRules()}
+
+// ── S3 & S7: Formulas ──
+async function loadFormulas3(){await loadFormulasForStage('inferred_engine','f3Body')}
+async function loadFormulas7(){await loadFormulasForStage('post_optimizer','f7Body')}
+async function loadFormulasForStage(stage,bodyId){
+  const r=await(await fetch(`${API}/plants/${P}/formulas`)).json();
+  const filtered=stage?r.filter(f=>f.pipeline_stage===stage||(!f.pipeline_stage&&stage==='inferred_engine')):r;
+  document.getElementById(bodyId).innerHTML=filtered.map(f=>`<tr>
+    <td style="font-weight:600;color:var(--text)">${f.tag_name}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--cyan)">${f.formula_expression}</td>
+    <td><span class="tag-chip" style="font-size:9px">${f.pipeline_stage||'inferred'}</span></td>
+    <td><button class="btn btn-danger btn-sm" onclick="delFormula('${f.id}','${stage}')">x</button></td></tr>`).join('')||
+    '<tr><td colspan="4" style="text-align:center;color:var(--muted)">No formulas for this stage</td></tr>';
+}
+async function addFormula(stage,prefix){
+  const tag=document.getElementById(prefix+'Tag').value.trim(),expr=document.getElementById(prefix+'Expr').value.trim();if(!tag||!expr)return;
+  await fetch(`${API}/plants/${P}/formulas`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tag_name:tag,formula_expression:expr,pipeline_stage:stage})});
+  document.getElementById(prefix+'Tag').value='';document.getElementById(prefix+'Expr').value='';
+  showToast('Formula added');stage==='post_optimizer'?loadFormulas7():loadFormulas3()}
+async function delFormula(id,stage){await fetch(`${API}/formulas/${id}`,{method:'DELETE'});stage==='post_optimizer'?loadFormulas7():loadFormulas3()}
+
+// ── S4: Sub-Models ──
+async function loadSubModels(){
+  const r=await(await fetch(`${API}/plants/${P}/sub-models`)).json();
+  document.getElementById('smBody').innerHTML=r.map(s=>`<tr>
+    <td style="font-weight:600;color:var(--text)">${s.name}</td>
+    <td><span class="tag-chip" style="background:var(--purple)22;border-color:var(--purple)44;color:var(--purple)">${s.model_type}</span></td>
+    <td>${s.execution_order}</td>
+    <td style="font-family:monospace;font-size:11px;color:var(--dim)">${s.expression||'-'}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="delSM('${s.id}')">x</button></td></tr>`).join('')||
+    '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No sub-models configured. Add equation or ML models.</td></tr>';
+}
+async function addSubModel(){
+  const n=document.getElementById('smName').value.trim();if(!n)return;
+  await fetch(`${API}/plants/${P}/sub-models`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    name:n,model_type:document.getElementById('smType').value,expression:document.getElementById('smExpr').value.trim()})});
+  ['smName','smExpr'].forEach(id=>document.getElementById(id).value='');showToast('Sub-model added');loadSubModels()}
+async function delSM(id){await fetch(`${API}/sub-models/${id}`,{method:'DELETE'});loadSubModels()}
+
+// ── S5: Variables & Constraints ──
+async function loadVariables(){
+  const r=await(await fetch(`${API}/plants/${P}/variables`)).json();
+  document.getElementById('variablesList').innerHTML=r.map(v=>`<div class="range-row">
+    <div class="label">${v.tag_name} ${v.is_integer?'<span class="tag-chip" style="background:var(--purple)22;border-color:var(--purple)44;color:var(--purple)">INT</span>':''}</div>
+    <input type="number" value="${v.lower_bound}" id="lb-${v.id}" onchange="updateBounds('${v.id}')">
+    <span class="sep">to</span><input type="number" value="${v.upper_bound}" id="ub-${v.id}" onchange="updateBounds('${v.id}')">
+  </div>`).join('')}
+async function updateBounds(id){
+  const lb=parseFloat(document.getElementById('lb-'+id).value),ub=parseFloat(document.getElementById('ub-'+id).value);
+  await fetch(`${API}/variables/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({lower_bound:lb,upper_bound:ub})});showToast('Bounds updated')}
+async function loadConstraints(){
+  const r=await(await fetch(`${API}/plants/${P}/constraints`)).json();
+  document.getElementById('constraintsList').innerHTML=r.map(c=>`<div class="alert-item">
+    <div style="flex:1"><div style="font-weight:600;font-size:12px;color:var(--text)">${c.name}</div>
+    <div style="font-family:monospace;font-size:11px;color:var(--cyan);margin-top:2px">${c.expression}</div></div>
+    <button class="btn btn-danger btn-sm" onclick="delConstr('${c.id}')">x</button></div>`).join('')}
+async function addConstraint(){
+  const n=document.getElementById('cName').value.trim(),e=document.getElementById('cExpr').value.trim();if(!n||!e)return;
+  await fetch(`${API}/plants/${P}/constraints`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,expression:e})});
+  document.getElementById('cName').value='';document.getElementById('cExpr').value='';showToast('Constraint added');loadConstraints()}
+async function delConstr(id){await fetch(`${API}/constraints/${id}`,{method:'DELETE'});loadConstraints()}
+
+// ── S8: Alert Causes & Effects ──
+async function loadCauses(){
+  const r=await(await fetch(`${API}/plants/${P}/alert-causes`)).json();
+  document.getElementById('causesList').innerHTML=r.map(c=>`<div class="alert-item" style="flex-direction:column;gap:4px">
+    <div style="display:flex;justify-content:space-between;width:100%"><div style="font-weight:700;font-size:12px;color:var(--text)">${c.name}</div>
+    <button class="btn btn-danger btn-sm" onclick="delCause('${c.id}')">x</button></div>
+    <div style="font-family:monospace;font-size:10px;color:var(--cyan)">${c.expression||''}</div>
+    <div style="font-size:11px;color:var(--dim)">${c.message||''}</div></div>`).join('')||
+    '<div style="color:var(--muted);font-size:12px;padding:8px">No causes configured</div>'}
+async function addAlertCause(){
+  const n=document.getElementById('acName').value.trim();if(!n)return;
+  await fetch(`${API}/plants/${P}/alert-causes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    name:n,expression:document.getElementById('acExpr').value.trim(),message:document.getElementById('acMsg').value.trim()})});
+  ['acName','acExpr','acMsg'].forEach(id=>document.getElementById(id).value='');showToast('Cause added');loadCauses()}
+async function delCause(id){await fetch(`${API}/alert-causes/${id}`,{method:'DELETE'});loadCauses()}
+async function loadEffects(){
+  const r=await(await fetch(`${API}/plants/${P}/alert-effects`)).json();
+  document.getElementById('effectsList').innerHTML=r.map(e=>`<div class="alert-item">
+    <div style="flex:1"><div style="font-weight:700;font-size:12px;color:var(--text)">${e.name}</div>
+    <div style="font-size:11px;color:var(--dim)">${e.description||''}</div>
+    <span class="tag-chip" style="margin-top:4px;background:${e.priority==='high'?'var(--red)':'var(--yellow)'}22;border-color:${e.priority==='high'?'var(--red)':'var(--yellow)'}44;color:${e.priority==='high'?'var(--red)':'var(--yellow)'}">${e.priority}</span></div>
+    <button class="btn btn-danger btn-sm" onclick="delEffect('${e.id}')">x</button></div>`).join('')||
+    '<div style="color:var(--muted);font-size:12px;padding:8px">No effects configured</div>'}
+async function addAlertEffect(){
+  const n=document.getElementById('aeName').value.trim();if(!n)return;
+  await fetch(`${API}/plants/${P}/alert-effects`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    name:n,description:document.getElementById('aeDesc').value.trim(),priority:document.getElementById('aePriority').value})});
+  ['aeName','aeDesc'].forEach(id=>document.getElementById(id).value='');showToast('Effect added');loadEffects()}
+async function delEffect(id){await fetch(`${API}/alert-effects/${id}`,{method:'DELETE'});loadEffects()}
+
+// ── Equipment ──
+async function loadEquipment(){
+  const r=await(await fetch(`${API}/plants/${P}/equipment`)).json();
+  document.getElementById('equipBody').innerHTML=r.map(e=>`<tr>
+    <td style="font-weight:600;color:var(--text)">${e.seu_name}</td><td>${e.display_name||''}</td>
+    <td><span class="tag-chip">${e.energy_source||''}</span></td></tr>`).join('')||
+    '<tr><td colspan="3" style="text-align:center;color:var(--muted)">No equipment configured</td></tr>'}
+
+// ── Run Optimizer ──
+async function runOptimizer(){
+  document.getElementById('loading').classList.add('show');
+  try{const r=await(await fetch(`${API}/plants/${P}/run`,{method:'POST'})).json();displayRun(r);showToast('Optimization complete!')}
+  catch(e){showToast('Error: '+e.message)}
+  document.getElementById('loading').classList.remove('show')}
+async function loadLatestRun(){
+  const res=await fetch(`${API}/plants/${P}/runs/latest`);if(res.ok){const r=await res.json();if(r)displayRun(r)}}
+function displayRun(r){
+  document.getElementById('kpiRuntime').textContent=r.duration_s+'s';
+  document.getElementById('kpiSavings').textContent='$'+r.savings_per_hour+'/hr';
+  document.getElementById('kpiAnnual').textContent='$'+(r.savings_per_year/1000).toFixed(0)+'K/yr';
+  document.getElementById('kpiFuel').textContent=r.fuel_improvement_pct+'%';
+  document.getElementById('kpiTags').textContent=r.n_tags;
+  document.getElementById('lastRunTime').textContent='Last: '+new Date().toLocaleString();
+  document.getElementById('alertsList').innerHTML=(r.recommendations||[]).map(a=>`<div class="alert-item">
+    <div class="alert-icon">${a.icon}</div><div class="alert-text">${a.message}</div></div>`).join('');
+  document.getElementById('seuBody').innerHTML=(r.seu_results||[]).map(s=>`<tr>
+    <td style="font-weight:600;color:var(--text)">${s.name}</td><td>${s.energy}</td>
+    <td>${s.actual}</td><td>${s.target}</td><td style="color:var(--green);font-weight:600">${s.gain}</td><td>${s.enpi}</td></tr>`).join('');
+  const cd=r.chart_data||[];if(perfChart)perfChart.destroy();
+  perfChart=new Chart(document.getElementById('perfChart').getContext('2d'),{type:'bar',data:{
+    labels:cd.map(d=>d.name.replace(/_/g,' ')),datasets:[
+      {label:'Actual',data:cd.map(d=>d.actual),backgroundColor:'#00d4ff44',borderColor:'#00d4ff',borderWidth:2,borderRadius:4},
+      {label:'Optimal',data:cd.map(d=>d.optimal),backgroundColor:'#10b98144',borderColor:'#10b981',borderWidth:2,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},
+      scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#1e2d4533'}},y:{ticks:{color:'#64748b'},grid:{color:'#1e2d4533'}}}}});
+}
+
+loadTags();
+</script>
+</body>
+</html>

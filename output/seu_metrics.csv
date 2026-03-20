@@ -1,0 +1,58 @@
+seu_name,seu_id,seu_display_name,seu_category,energy_source,baseline_duty,actual_duty,target_duty,gain,enpi,benefit,run_timestamp
+KM-2115,60,EG1 Recycle gas compressor,Compressor,Electricity,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+E-2523,61,EG1 Third Stage Reactor Feed Heater,Exchanger,Steam,0.6867,,,,,,2026-03-17 05:12:00.480567
+E-2531,62,EG1 First Effect Reboiler,Reboiler,Steam,2.469,4.9217,,-302.3123,,-0.0,2026-03-17 05:12:00.480567
+E-2610,63,EG1 Drying Column Reboiler,Reboiler,Steam,,,,,,,2026-03-17 05:12:00.480567
+E-2620,64,EG1 MEG Column Reboiler,Reboiler,Steam,,,,,,,2026-03-17 05:12:00.480567
+KM-4115,65,EG2 Recycle gas compressor,Compressor,Electricity,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+E-4523,66,EG2 Third Stage Reactor Feed Heater,Exchanger,Steam,0.7514,,,,,,2026-03-17 05:12:00.480567
+E-4531,67,EG2 First Effect Reboiler,Reboiler,Steam,2.3574,1.5744,,51.9874,,0.0,2026-03-17 05:12:00.480567
+E-4610,68,EG2 Drying Column Reboiler,Reboiler,Steam,,,,,,,2026-03-17 05:12:00.480567
+E-4620,69,EG2 MEG Column Reboiler,Reboiler,Steam,,,,,,,2026-03-17 05:12:00.480567
+E-6531,70,EG3 First Effect Reboiler,Reboiler,Steam,1.6745,0.7742,,204.1816,,0.0,2026-03-17 05:12:00.480567
+E-6620,71,EG3 MEG Column Reboiler,Reboiler,Steam,1.4566,1.2877,,38.3045,,0.0,2026-03-17 05:12:00.480567
+H-1111,72,Eth Furnace A,Furnace,Fuel,0.0,,,,,,2026-03-17 05:12:00.480567
+H-1112,73,Eth Furnace B,Furnace,Fuel,0.0,,,,,,2026-03-17 05:12:00.480567
+H-1113,74,Eth Furnace C,Furnace,Fuel,5.476,,,,,,2026-03-17 05:12:00.480567
+H-1114,75,Eth Furnace D,Furnace,Fuel,5.2277,,,,,,2026-03-17 05:12:00.480567
+H-1115,76,Eth Furnace E,Furnace,Fuel,5.1951,,,,,,2026-03-17 05:12:00.480567
+H-1116,77,Eth Furnace G,Furnace,Fuel,5.4922,,,,,,2026-03-17 05:12:00.480567
+H-1117,78,Eth Furnace H,Furnace,Fuel,5.3501,,,,,,2026-03-17 05:12:00.480567
+H-1118,79,Eth Furnace I,Furnace,Fuel,5.3633,,,,,,2026-03-17 05:12:00.480567
+H-1119,80,Eth Furnace J,Furnace,Fuel,5.2918,,,,,,2026-03-17 05:12:00.480567
+BO-7104A,81,U&O Boiler A,Boiler,Fuel,2.8641,0.1887,,0.2082,,0.0,2026-03-17 05:12:00.480567
+BO-7104B,82,U&O Boiler B,Boiler,Fuel,2.8186,0.0,,0.0549,,0.0,2026-03-17 05:12:00.480567
+BO-7104C,83,U&O Boiler C,Boiler,Fuel,2.8073,0.0,,0.131,,0.0,2026-03-17 05:12:00.480567
+BO-7104D,84,U&O Boiler D,Boiler,Fuel,2.7991,2.4512,,0.0015,,0.0,2026-03-17 05:12:00.480567
+BO-7104E,85,U&O Boiler E,Boiler,Fuel,2.8465,0.3783,,0.0381,,0.0,2026-03-17 05:12:00.480567
+KT-1200,86,Eth CGC Turbine,Compressor,Steam,1.4179,1.4839,,-5.4531,,-12.1785,2026-03-17 05:12:00.480567
+E-1102,87,Eth Ethane feed saturator,Exchanger,Steam,0.9381,,,,,,2026-03-17 05:12:00.480567
+KM-7202B,88,U&O Air Compressor-B,Compressor,Electricity,0.3651,,,,,,2026-03-17 05:12:00.480567
+KM-7202C,89,U&O Air Compressor-C,Compressor,Electricity,0.3949,,,,,,2026-03-17 05:12:00.480567
+PK-5020,90,CO2 Raw Gas Compressor,Compressor,Electricity,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+PK-5070,91,CO2 Product Compressor,Compressor,Electricity,0.0,-0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+KT-7202A,92,U&O Air Compressor-A,Compressor,Steam,,,,,,,2026-03-17 05:12:00.480567
+KT-7202D,93,U&O Air Compressor-D,Compressor,Steam,,,,,,,2026-03-17 05:12:00.480567
+V-7101A,94,U&O Deaerator-A,Deaerator,Steam,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+V-7101B,95,U&O Deaerator-B,Deaerator,Steam,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+PM-7102A,96,U&O VHP BFW Pump-A,Pump,Electricity,,,,,,,2026-03-17 05:12:00.480567
+PM-7103A,97,U&O BFW Pump-A,Pump,Electricity,,,,,,,2026-03-17 05:12:00.480567
+PM-7103D,98,U&O BFW Pump-D,Pump,Electricity,,,,,,,2026-03-17 05:12:00.480567
+PM-7103F,99,U&O BFW Pump-F,Pump,Electricity,0.0141,,,,,,2026-03-17 05:12:00.480567
+PT-7102B,100,U&O VHP BFW Pump-B,Pump,Steam,,,,,,,2026-03-17 05:12:00.480567
+PT-7102C,101,U&O VHP BFW Pump-C,Pump,Steam,,,,,,,2026-03-17 05:12:00.480567
+PT-7103B,102,U&O BFW Pump-B,Pump,Steam,0.0,,,,,,2026-03-17 05:12:00.480567
+PT-7103C,103,U&O BFW Pump-C,Pump,Steam,0.0,,,,,,2026-03-17 05:12:00.480567
+PT-7103E,104,U&O BFW Pump-E,Pump,Steam,0.0,,,,,,2026-03-17 05:12:00.480567
+PT-7801A,105,U&O Cooling Water Pump-A,Pump,Steam,,,,,,,2026-03-17 05:12:00.480567
+PT-7801B,106,U&O Cooling Water Pump-B,Pump,Steam,,,,,,,2026-03-17 05:12:00.480567
+PT-7801G,107,U&O Cooling Water Pump-G,Pump,Steam,,,,,,,2026-03-17 05:12:00.480567
+KM-6115,108,EG3 Recycle gas compressor,Compressor,Electricity,0.0,0.0,,0.0,,0.0,2026-03-17 05:12:00.480567
+H-3831,109,LAO Hot Oil Heater,Heater,Fuel,0.2843,,,,,,2026-03-17 05:12:00.480567
+C-2310 / E-2310,110,EG1 Stripping System,Stripping System,Steam,1.215,,,,,,2026-03-17 05:12:00.480567
+C-4310 / E-4310,111,EG2 Stripping System,Stripping System,Steam,1.0996,,,,,,2026-03-17 05:12:00.480567
+C-2220 / E-2220,112,EG1 Regeneration System,Regeneration System,Steam,,,,,,,2026-03-17 05:12:00.480567
+C-4220 / E-4220,113,EG2 Regeneration System,Regeneration System,Steam,,,,,,,2026-03-17 05:12:00.480567
+E-6220,114,EG3 Regeneration System,Regeneration System,Steam,,,,,,,2026-03-17 05:12:00.480567
+KT-1500,121,Eth C2R Turbine,Compressor,Steam,0.4605,789.8587,,-303769.9868,,-678418.6246,2026-03-17 05:12:00.480567
+KT-1600,122,Eth C3R Turbine,Compressor,Steam,0.7559,557.3452,,-214182.282,,-478339.7158,2026-03-17 05:12:00.480567
